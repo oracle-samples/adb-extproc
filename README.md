@@ -16,15 +16,17 @@ adb-extproc container should be used with an Autonomous Database Serverless (ADB
 To start an extproc container, run the following commmand
 
 ```text
-podman run -d \
+/usr/bin/podman run -d \
+--replace \
 -p 16000:16000 \
--e EXTPROC_WALLET_PASSWORD=*** \
--e EXTPROC_DLLS='mycustomlib.so' \
--e TCP_INVITED_NODES='' \
+-e EXTPROC_WALLET_PASSWORD=${wallet_password} \
+-e EXTPROC_DLLS='${dlls}' \
+-e TCP_INVITED_NODES='${acls}' \
 -e SCRIPTS_FOLDER_LOC_ENV='/tmp/' \
 -e TRACE_FILE_LOC_ENV='/tmp/' \
 -v /path/to/mycustomlib/:/u01/app/oracle/extproc_libs:Z \
 -v /path/to/extproc_logs:/u01/app/oracle/extproc_logs:Z \
+--network=host \
 --name adb-extproc \
 ghcr.io/oracle/adb-extproc:latest
 ```
@@ -45,8 +47,8 @@ Following table explains the environment variables passed to the container
 |----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | EXTPROC_WALLET_PASSWORD       | Wallet is generated using the passed wallet password. Wallet password must have a minimum length of eight characters and contain alphabetic characters combined with numbers or special characters. |
 | EXTPROC_DLLS       | Comma separated list of shared objects extproc is allowed to invoke. All custom libs should be accessible from within the container location `/u01/app/oracle/extproc_libs`                         |
-| TCP_INVITED_NODES       | Specify comma separated list of clients allowed to access the extproc listener                                                                                                                      |
-| SCRIPTS_FOLDER_LOC_ENV      | Location of custom scripts in the container. Default value is `/tmp` folder You can copy scripts using `podman cp <myscript.sh> <containerid>:/tmp/`                                                |
+| TCP_INVITED_NODES       | ADB-S Private Endpoint (PE) IP address                                                                                                                                                              |
+| SCRIPTS_FOLDER_LOC_ENV      | Location of custom scripts in the container. Default value is `/tmp` folder. You can copy scripts using `podman cp <myscript.sh> <containerid>:/tmp/`                                               |
 | TRACE_FILE_LOC_ENV   | Every invocation generates a trace file at this location. Default value is `/tmp` folder                                                                                                            |
 
 
