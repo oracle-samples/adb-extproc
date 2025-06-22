@@ -1,28 +1,90 @@
-*This repository acts as a template for all of Oracle’s GitHub repositories. It contains information about the guidelines for those repositories. All files and sections contained in this template are mandatory, and a GitHub app ensures alignment with these guidelines. To get started with a new repository, replace the italic paragraphs with the respective text for your project.*
+# Oracle Autonomous Database Extproc Container Image Documentation
 
-# Project name
+adb-extproc container image spawns an Oracle extproc process which allows you to invoke
+external scripts, functions and procedures written in other languages like (Python, C) from within your PL/SQL code.
 
-*Describe your project's features, functionality and target audience*
+Following key features are supported:
+- SSL - An Oracle wallet containing self-signed certificate is generated on container startup to encrypt the communication between your Database and extproc agent
+- Invoke functions defined in custom libraries - Configure the container to load custom libraries from volume mounted in the container
+- Execute custom scripts - For e.g. Python or bash scripts to perform ETL operations in the database
+- Allow list - Configure `TCP_INVITED_NODES` to specify clients allowed to access the extproc listener 
 
-## Installation
+adb-extproc container should be used with an Autonomous Database Serverless (ADB-S) instance in Cloud
 
-*Provide detailed step-by-step installation instructions. You can name this section **How to Run** or **Getting Started** instead of **Installation** if that's more acceptable for your project*
+## Using this image
 
-## Documentation
+To start an extproc container, run the following commmand
 
-*Developer-oriented documentation can be published on GitHub, but all product documentation must be published on <https://docs.oracle.com>*
+```text
+podman run -d \
+-p 16000:16000 \
+-e EXTPROC_WALLET_PASSWORD=*** \
+-e EXTPROC_DLLS='mycustomlib.so' \
+-e TCP_INVITED_NODES='' \
+-e SCRIPTS_FOLDER_LOC_ENV='/tmp/' \
+-e TRACE_FILE_LOC_ENV='/tmp/' \
+-v /path/to/mycustomlib/:/u01/app/oracle/extproc_libs:Z \
+-v /path/to/extproc_logs:/u01/app/oracle/extproc_logs:Z \
+--name adb-extproc \
+ghcr.io/oracle/adb-extproc:latest
+```
 
-## Examples
+## Port Mapping
 
-*Describe any included examples or provide a link to a demo/tutorial*
+Note the following ports which are forwarded to the container process
 
-## Help
+| Port  | Description                          |
+|-------|--------------------------------------|
+| 16000 | TLS                                  |
 
-*Inform users on where to get help or how to receive official support from Oracle (if applicable)*
+## Configuration
+
+Following table explains the environment variables passed to the container
+
+| Environment variable | Description                                                                                                                                                                                         |
+|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| EXTPROC_WALLET_PASSWORD       | Wallet is generated using the passed wallet password. Wallet password must have a minimum length of eight characters and contain alphabetic characters combined with numbers or special characters. |
+| EXTPROC_DLLS       | Comma separated list of shared objects extproc is allowed to invoke. All custom libs should be accessible from within the container location `/u01/app/oracle/extproc_libs`                         |
+| TCP_INVITED_NODES       | Specify comma separated list of clients allowed to access the extproc listener                                                                                                                      |
+| SCRIPTS_FOLDER_LOC_ENV      | Location of custom scripts in the container. Default value is `/tmp` folder You can copy scripts using `podman cp <myscript.sh> <containerid>:/tmp/`                                                |
+| TRACE_FILE_LOC_ENV   | Every invocation generates a trace file at this location. Default value is `/tmp` folder                                                                                                            |
+
+
+## Wallet setup
+
+In the container, TLS wallet is generated at location `/u01/app/oracle/wallets/extproc_wallet`
+
+Copy wallet to your host.
+
+```bash
+rm -rf /scratch/extproc_wallet
+podman cp adb-extproc:/u01/app/oracle/wallets/extproc_wallet /scratch/extproc_wallet
+```
+In this example, wallet is copied to `/scratch/extproc_wallet` folder on your machine
+
+You can upload this wallet to Object store and download it using `DBMS_CLOUD.GET_OBJECT` to make it accessible to your Autonomous Database instance
+
+```sql
+
+   BEGIN
+     DBMS_CLOUD.GET_OBJECT(
+       credential_name => 'my_object_storage_creds',
+       object_uri => '<object_storage_wallet_uri>',
+       directory_name => 'MY_WALLET_DIR',
+       file_name => 'cwallet.sso'
+     );
+   END;
+   /
+
+```
+
+## `DBMS_CLOUD_FUNCTION` documentation
+
+Once the container is up and running, refer to `DBMS_CLOUD_FUNCTION` [package documentation](https://docs.oracle.com/en-us/iaas/autonomous-database-serverless/doc/dbms-cloud-function.html#GUID-B9154A3C-A696-4C67-A7FE-F5A9FFECE87C)
+to understand how to create a catalog and invoke functions remotely
+
 
 ## Contributing
-
-*If your project has specific contribution requirements, update the CONTRIBUTING.md file to ensure those requirements are clearly explained*
 
 This project welcomes contributions from the community. Before submitting a pull request, please [review our contribution guide](./CONTRIBUTING.md)
 
@@ -32,13 +94,7 @@ Please consult the [security guide](./SECURITY.md) for our responsible security 
 
 ## License
 
-*The correct copyright notice format for both documentation and software is*
-    "Copyright (c) [year,] year Oracle and/or its affiliates."
-*You must include the year the content was first released (on any platform) and the most recent year in which it was revised*
-
-Copyright (c) 2023 Oracle and/or its affiliates.
-
-*Replace this statement if your project is not licensed under the UPL*
+Copyright (c) 2025 Oracle and/or its affiliates.
 
 Released under the Universal Permissive License v1.0 as shown at
 <https://oss.oracle.com/licenses/upl/>.
