@@ -4,7 +4,7 @@ adb-extproc container image spawns an Oracle extproc process which allows you to
 external scripts, functions and procedures written in other languages like (Python, C) from within your PL/SQL code.
 
 Following key features are supported:
-- SSL - An Oracle wallet containing self-signed certificate is generated on container startup to encrypt the communication between your Database and extproc agent
+- SSL - An Oracle wallet containing self-signed certificate is generated on container startup to encrypt the communication between your ADB-S instance and extproc agent
 - Invoke functions defined in custom libraries - Configure the container to load custom libraries from volume mounted in the container
 - Execute custom scripts - For e.g. Python or bash scripts to perform ETL operations in the database
 - Allow list - Configure `TCP_INVITED_NODES` to specify clients allowed to access the extproc listener 
@@ -13,7 +13,7 @@ adb-extproc container should be used with an Autonomous Database Serverless (ADB
 
 ## Using this image
 
-To start an extproc container, run the following commmand
+To start an extproc container, run the following `podman` command
 
 ```text
 /usr/bin/podman run -d \
@@ -24,12 +24,14 @@ To start an extproc container, run the following commmand
 -e TCP_INVITED_NODES='${acls}' \
 -e SCRIPTS_FOLDER_LOC_ENV='/tmp/' \
 -e TRACE_FILE_LOC_ENV='/tmp/' \
--v /path/to/mycustomlib/:/u01/app/oracle/extproc_libs:Z \
--v /path/to/extproc_logs:/u01/app/oracle/extproc_logs:Z \
+-v /u01/app/oracle/extproc_libs:/u01/app/oracle/extproc_libs:Z \
+-v /u01/app/oracle/extproc_logs:/u01/app/oracle/extproc_logs:Z \
 --network=host \
 --name adb-extproc \
 ghcr.io/oracle/adb-extproc:latest
 ```
+> Note the paths `/u01/app/oracle/extproc_logs` 
+> and `/u01/app/oracle/extproc_libs` on the host VM are mounted in the container.
 
 ## Port Mapping
 
@@ -46,7 +48,7 @@ Following table explains the environment variables passed to the container
 | Environment variable | Description                                                                                                                                                                                         |
 |----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | EXTPROC_WALLET_PASSWORD       | Wallet is generated using the passed wallet password. Wallet password must have a minimum length of eight characters and contain alphabetic characters combined with numbers or special characters. |
-| EXTPROC_DLLS       | Comma separated list of shared objects extproc is allowed to invoke. All custom libs should be accessible from within the container location `/u01/app/oracle/extproc_libs`                         |
+| EXTPROC_DLLS       | Comma separated list of shared objects extproc is allowed to invoke. All custom libs should be accessible from within the container at location `/u01/app/oracle/extproc_libs`                      |
 | TCP_INVITED_NODES       | ADB-S Private Endpoint (PE) IP address                                                                                                                                                              |
 | SCRIPTS_FOLDER_LOC_ENV      | Location of custom scripts in the container. Default value is `/tmp` folder. You can copy scripts using `podman cp <myscript.sh> <containerid>:/tmp/`                                               |
 | TRACE_FILE_LOC_ENV   | Every invocation generates a trace file at this location. Default value is `/tmp` folder                                                                                                            |
