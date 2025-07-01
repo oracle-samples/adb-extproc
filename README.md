@@ -17,7 +17,6 @@ To start an extproc container, run the following `podman` command
 
 ```text
 /usr/bin/podman run -d \
---replace \
 -p 16000:16000 \
 -e EXTPROC_WALLET_PASSWORD=${wallet_password} \
 -e EXTPROC_DLLS='${dlls}' \
